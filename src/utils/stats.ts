@@ -1,4 +1,6 @@
 import type { BookmarkTree } from "../types/bookmark.types";
+import type { Config } from "../config/config";
+import chalk from "chalk";
 
 export interface BookmarkStats {
   bookmarkCount: number;
@@ -19,4 +21,20 @@ export function countBookmarksAndFolders(tree: BookmarkTree): BookmarkStats {
 
   processFolder(tree.root);
   return stats;
+}
+
+export function printFinalStats(config: Config): void {
+  if (config.maxFolders) {
+    console.log(
+      chalk.blue(
+        `\n📊 Folder organization strategy: ${config.maxFolders} top-level folders maximum`
+      )
+    );
+  } else {
+    console.log(
+      chalk.blue(
+        "\n📊 Folder organization strategy: No limit on top-level folders"
+      )
+    );
+  }
 }

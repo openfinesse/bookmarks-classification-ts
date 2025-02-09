@@ -4,7 +4,7 @@ import { BookmarkGenerator } from "./generator.service";
 import { FileService } from "./file.service";
 import type { Config } from "../config/config";
 import type { Bookmark, BookmarkTree } from "../types/bookmark.types";
-import { countBookmarksAndFolders } from "../utils/stats";
+import { countBookmarksAndFolders, printFinalStats } from "../utils/stats";
 import { AIServiceError } from "../types/errors";
 import chalk from "chalk";
 
@@ -152,6 +152,7 @@ export class BookmarkService {
       console.log(
         chalk.blue("\n🔍 Initializing bookmark organization process...")
       );
+      printFinalStats(this.config);
       console.log(
         chalk.blue(
           `Using ${this.config.aiModel.toUpperCase()} for bookmark classification...`
@@ -206,6 +207,7 @@ export class BookmarkService {
       console.log(
         chalk.green("\n🎉 All bookmark files have been processed successfully!")
       );
+      printFinalStats(this.config);
     } catch (error: any) {
       console.error(chalk.red("\n❌ Fatal error:"), error);
       throw error;

@@ -15,12 +15,14 @@ program
   .option("-k, --api-key <key>", "AI API key (OpenAI or DeepSeek)")
   .option("-m, --model <type>", "AI model (openai or deepseek)", "openai")
   .option("-b, --browser <type>", "Browser type (chrome or firefox)", "chrome")
+  .option("-f, --max-folders <number>", "Maximum number of top-level folders")
   .action(async (options) => {
     const config = {
       ...defaultConfig,
       apiKey: options.apiKey || process.env.AI_API_KEY || "",
       aiModel: options.model as AIModelType,
       browserType: options.browser as BrowserType,
+      maxFolders: options.maxFolders ? parseInt(options.maxFolders) : undefined,
     };
 
     if (!config.apiKey) {
@@ -34,6 +36,14 @@ program
       console.error(
         "Error: Invalid AI model. Please use either 'openai' or 'deepseek'."
       );
+      process.exit(1);
+    }
+
+    if (
+      config.maxFolders !== undefined &&
+      (isNaN(config.maxFolders) || config.maxFolders < 1)
+    ) {
+      console.error("Error: --max-folders must be a positive number.");
       process.exit(1);
     }
 
