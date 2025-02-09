@@ -1,4 +1,10 @@
 export type BrowserType = "chrome" | "firefox";
+export type AIModelType = "openai" | "deepseek";
+
+export interface AIConfig {
+  apiKey: string;
+  model: AIModelType;
+}
 
 export interface Bookmark {
   title: string;

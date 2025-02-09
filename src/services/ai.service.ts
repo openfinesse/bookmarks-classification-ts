@@ -2,13 +2,19 @@ import OpenAI from "openai";
 import type {
   Bookmark,
   AIClassificationResponse,
+  AIModelType,
 } from "../types/bookmark.types";
 
 export class AIService {
   private openai: OpenAI;
+  private model: AIModelType;
 
-  constructor(apiKey: string) {
-    this.openai = new OpenAI({ apiKey });
+  constructor(apiKey: string, model: AIModelType) {
+    this.model = model;
+    this.openai = new OpenAI({
+      apiKey,
+      baseURL: model === "deepseek" ? "https://api.deepseek.com" : undefined,
+    });
   }
 
   public async classifyBookmark(
@@ -25,7 +31,7 @@ Please classify this bookmark and suggest:
 Consider the content, purpose, and context of the bookmark.`;
 
     const response = await this.openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: this.model === "openai" ? "gpt-3.5-turbo" : "deepseek-chat",
       messages: [
         {
           role: "system",

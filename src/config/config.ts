@@ -1,15 +1,17 @@
-import type { BrowserType } from "../types/bookmark.types";
+import type { BrowserType, AIModelType } from "../types/bookmark.types";
 import path from "path";
 
 export interface Config {
-  openaiApiKey: string;
+  aiModel: AIModelType;
+  apiKey: string;
   browserType: BrowserType;
   dataDir: string;
   outputDir: string;
 }
 
 export const defaultConfig: Config = {
-  openaiApiKey: process.env.OPENAI_API_KEY || "",
+  aiModel: (process.env.AI_MODEL || "openai") as AIModelType,
+  apiKey: process.env.AI_API_KEY || "",
   browserType: (process.env.BROWSER_TYPE || "chrome") as BrowserType,
   dataDir: path.join(process.cwd(), "data"),
   outputDir: path.join(process.cwd(), "data", "output"),

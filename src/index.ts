@@ -12,10 +12,15 @@ export async function processBookmarks(config: Config): Promise<void> {
     console.log(
       chalk.blue("\n🔍 Initializing bookmark organization process...")
     );
+    console.log(
+      chalk.blue(
+        `Using ${config.aiModel.toUpperCase()} for bookmark classification...`
+      )
+    );
 
     const fileService = new FileService(config.dataDir, config.outputDir);
     const parser = new BookmarkParser(config.browserType);
-    const ai = new AIService(config.openaiApiKey);
+    const ai = new AIService(config.apiKey, config.aiModel);
     const generator = new BookmarkGenerator();
 
     const bookmarkFiles = fileService.getBookmarkFiles(config.browserType);
