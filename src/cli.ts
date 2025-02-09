@@ -16,6 +16,14 @@ program
   .option("-m, --model <type>", "AI model (openai or deepseek)", "openai")
   .option("-b, --browser <type>", "Browser type (chrome or firefox)", "chrome")
   .option("-f, --max-folders <number>", "Maximum number of top-level folders")
+  .option(
+    "-p, --prompt <text>",
+    "Additional instructions for bookmark classification"
+  )
+  .option(
+    "-g, --group-prompt <text>",
+    "Additional instructions for folder grouping"
+  )
   .action(async (options) => {
     const config = {
       ...defaultConfig,
@@ -23,6 +31,8 @@ program
       aiModel: options.model as AIModelType,
       browserType: options.browser as BrowserType,
       maxFolders: options.maxFolders ? parseInt(options.maxFolders) : undefined,
+      customPrompt: options.prompt,
+      customFolderPrompt: options.groupPrompt,
     };
 
     if (!config.apiKey) {

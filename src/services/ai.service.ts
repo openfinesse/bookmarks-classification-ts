@@ -78,7 +78,11 @@ For each bookmark, provide the classification in this exact format:
 Tags: tag1, tag2, tag3
 Folder: folder_name
 
-Consider the content, purpose, and context of each bookmark.`;
+Consider the content, purpose, and context of each bookmark.${
+      this.config.customPrompt
+        ? `\n\nAdditional instructions: ${this.config.customPrompt}`
+        : ""
+    }`;
 
     try {
       const response = await this.retryWithDelay(() =>
@@ -212,7 +216,11 @@ Requirements:
 3. Categories should be clear and intuitive for a bookmark hierarchy
 4. Avoid overlapping categories
 5. Use generic names that can encompass related subcategories
-6. Consider common bookmark organization patterns
+6. Consider common bookmark organization patterns${
+      this.config.customFolderPrompt
+        ? `\n\nAdditional instructions: ${this.config.customFolderPrompt}`
+        : ""
+    }
 
 Return the result as a JSON object where:
 - Keys are the new top-level category names (exactly ${targetCount})

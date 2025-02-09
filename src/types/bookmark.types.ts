@@ -5,6 +5,8 @@ export interface AIConfig {
   apiKey: string;
   model: AIModelType;
   maxFolders?: number;
+  customPrompt?: string;
+  customFolderPrompt?: string;
 }
 
 export interface Bookmark {

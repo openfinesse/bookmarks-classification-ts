@@ -44,8 +44,14 @@ bun run organize --browser firefox --model deepseek
 # Limit the number of top-level folders (will group similar folders together)
 bun run organize --max-folders 10
 
+# Add custom instructions for bookmark classification
+bun run organize --prompt "Focus on technical and professional categories"
+
+# Add custom instructions for folder grouping
+bun run organize --group-prompt "Prioritize development-related categories"
+
 # Use all options
-bun run organize --api-key 'your-api-key' --model openai --browser chrome --max-folders 15
+bun run organize --api-key 'your-api-key' --model openai --browser chrome --max-folders 15 --prompt "Focus on work-related categories" --group-prompt "Create industry-specific groups"
 ```
 
 The organized bookmarks will be saved in `data/output` with a timestamp in the filename.

@@ -8,6 +8,8 @@ export interface Config {
   dataDir: string;
   outputDir: string;
   maxFolders?: number;
+  customPrompt?: string;
+  customFolderPrompt?: string;
 }
 
 export const defaultConfig: Config = {
