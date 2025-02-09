@@ -16,7 +16,7 @@ Automatically organize and classify your browser bookmarks using AI.
 
 ```bash
 # Clone the repository
-git clone [your-repo-url]
+git clone [repo-url]
 cd bookmarks-classification-ts
 
 # Install dependencies
