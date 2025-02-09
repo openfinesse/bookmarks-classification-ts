@@ -200,11 +200,19 @@ Consider the content, purpose, and context of each bookmark.`;
     const prompt = `You are organizing browser bookmarks into a hierarchical structure. 
 Given these ${
       folders.length
-    } folder names, create exactly ${targetCount} top-level categories.
-Each category should be broad and descriptive, and all existing folders should be assigned as sub-folders.
+    } folder names, create exactly ${targetCount} broad top-level categories.
+Each category should be generic enough to accommodate multiple related topics.
 
 Current folders to organize:
 ${folders.join("\n")}
+
+Requirements:
+1. Create exactly ${targetCount} broad, inclusive categories
+2. Every folder MUST be assigned to a category
+3. Categories should be clear and intuitive for a bookmark hierarchy
+4. Avoid overlapping categories
+5. Use generic names that can encompass related subcategories
+6. Consider common bookmark organization patterns
 
 Return the result as a JSON object where:
 - Keys are the new top-level category names (exactly ${targetCount})
@@ -214,9 +222,9 @@ Return the result as a JSON object where:
 
 Example format:
 {
-  "Development": ["Programming", "GitHub", "Stack Overflow"],
-  "Entertainment": ["YouTube", "Netflix", "Gaming"],
-  "Work": ["Projects", "Meetings", "Resources"]
+  "Technology & Development": ["Programming", "Web Development", "Software", "Tools"],
+  "Business & Work": ["Projects", "Marketing", "Resources", "Professional"],
+  "Media & Entertainment": ["Movies", "Music", "Games", "Videos"]
 }`;
 
     try {

@@ -1,39 +1,49 @@
-import type { BookmarkTree } from "../types/bookmark.types";
+import type { BookmarkTree, BookmarkFolder } from "../types/bookmark.types";
 import type { Config } from "../config/config";
 import chalk from "chalk";
 
-export interface BookmarkStats {
+export function countBookmarksAndFolders(tree: BookmarkTree): {
   bookmarkCount: number;
   folderCount: number;
-}
+  topLevelFolders: BookmarkFolder[];
+} {
+  let bookmarkCount = 0;
+  let folderCount = 0;
+  const topLevelFolders: BookmarkFolder[] = [];
 
-export function countBookmarksAndFolders(tree: BookmarkTree): BookmarkStats {
-  const stats: BookmarkStats = {
-    bookmarkCount: 0,
-    folderCount: 0,
+  const processFolder = (folder: BookmarkFolder) => {
+    if (folder.title !== "Bookmarks") {
+      folderCount++;
+    }
+    bookmarkCount += folder.bookmarks.length;
+
+    if (folder.parentFolder === "Bookmarks") {
+      topLevelFolders.push(folder);
+    }
+
+    folder.subFolders.forEach(processFolder);
   };
 
-  function processFolder(folder: any) {
-    stats.bookmarkCount += folder.bookmarks.length;
-    stats.folderCount += 1;
-    folder.subFolders.forEach(processFolder);
-  }
-
   processFolder(tree.root);
-  return stats;
+
+  return {
+    bookmarkCount,
+    folderCount,
+    topLevelFolders,
+  };
 }
 
 export function printFinalStats(config: Config): void {
   if (config.maxFolders) {
     console.log(
       chalk.blue(
-        `\n📊 Folder organization strategy: ${config.maxFolders} top-level folders maximum`
+        `📊 Folder organization strategy: ${config.maxFolders} top-level folders maximum`
       )
     );
   } else {
     console.log(
       chalk.blue(
-        "\n📊 Folder organization strategy: No limit on top-level folders"
+        "📊 Folder organization strategy: No limit on top-level folders"
       )
     );
   }
