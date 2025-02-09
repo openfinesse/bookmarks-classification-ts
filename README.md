@@ -5,7 +5,7 @@ A TypeScript tool that uses AI to automatically organize and classify your brows
 ## Features
 
 - Supports Chrome and Firefox bookmarks
-- Uses OpenAI's GPT to classify bookmarks
+- OpenAI & DeepSeek model supported
 - Automatically creates meaningful folder structures
 - Adds relevant tags to bookmarks
 - Preserves original bookmark metadata
@@ -28,7 +28,7 @@ bun install
 3. Run the organizer using one of these methods:
 
 ```bash
-# Using environment variable
+# Using environment variable (OpenAI or DeepSeek)
 export OPENAI_API_KEY='your-api-key'
 bun run organize
 
@@ -47,5 +47,5 @@ The organized bookmarks will be saved in `data/output` with a timestamp in the f
 ## Requirements
 
 - Bun runtime
-- OpenAI API key
+- OpenAI API key or DeepSeek API key
 - Chrome or Firefox bookmarks exported as HTML
