@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import { Bookmark, BookmarkFolder, BookmarkTree } from '../types/bookmark.types';
+import type { Bookmark, BookmarkFolder, BookmarkTree } from '../types/bookmark.types';
 
 export class BookmarkParser {
     private parseBookmark(element: Element): Bookmark {

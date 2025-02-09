@@ -39,8 +39,6 @@ Consider the content, purpose, and context of the bookmark.`;
             throw new Error('No response from AI');
         }
 
-        // Parse AI response - This is a simple implementation
-        // You might want to make this more robust
         const lines = content.split('\n');
         const tags = lines
             .find(line => line.toLowerCase().includes('tags:'))
