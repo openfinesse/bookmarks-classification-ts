@@ -1,6 +1,6 @@
-# Bookmark Organizer
+# Bookmark Organizer 📌
 
-A TypeScript tool that uses AI to automatically organize and classify your browser bookmarks.
+Automatically organize and classify your browser bookmarks using AI.
 
 ![image](assets/image.png)
 

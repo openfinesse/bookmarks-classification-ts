@@ -28,7 +28,6 @@ export class AIServiceError extends Error {
 
     let message = `${provider} API Error: ${details.message}`;
 
-    // Handle specific error cases
     switch (status) {
       case 402:
         message = `${provider} API Error: Insufficient balance. Please check your account credits.`;
