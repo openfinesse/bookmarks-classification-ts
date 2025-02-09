@@ -1,66 +1,75 @@
-import { readFileSync, writeFileSync } from 'fs';
-import { BookmarkParser } from './services/parser.service';
-import { AIService } from './services/ai.service';
-import { BookmarkGenerator } from './services/generator.service';
-import { defaultConfig } from './config/config';
-import type { Bookmark } from './types/bookmark.types';
+import { BookmarkParser } from "./services/parser.service";
+import { AIService } from "./services/ai.service";
+import { BookmarkGenerator } from "./services/generator.service";
+import { FileService } from "./services/file.service";
+import type { Config } from "./config/config";
+import type { Bookmark } from "./types/bookmark.types";
 
-async function main() {
-    // Validate configuration
-    if (!defaultConfig.openaiApiKey) {
-        throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable.');
+export async function processBookmarks(config: Config): Promise<void> {
+  try {
+    const fileService = new FileService(config.dataDir, config.outputDir);
+    const parser = new BookmarkParser(config.browserType);
+    const ai = new AIService(config.openaiApiKey);
+    const generator = new BookmarkGenerator();
+
+    const bookmarkFiles = fileService.getBookmarkFiles(config.browserType);
+
+    if (bookmarkFiles.length === 0) {
+      console.log(
+        `No ${config.browserType} bookmark files found in ${config.dataDir}`
+      );
+      return;
     }
 
-    try {
-        // Initialize services
-        const parser = new BookmarkParser();
-        const ai = new AIService(defaultConfig.openaiApiKey);
-        const generator = new BookmarkGenerator();
+    console.log(`Found ${bookmarkFiles.length} bookmark files to process...`);
 
-        // Read and parse input file
-        console.log('Reading bookmark file...');
-        const htmlContent = readFileSync(defaultConfig.inputFile, 'utf-8');
-        const bookmarkTree = parser.parseHtmlFile(htmlContent);
+    for (const filePath of bookmarkFiles) {
+      console.log(`\nProcessing ${filePath}...`);
 
-        // Collect all bookmarks for classification
-        const allBookmarks: Bookmark[] = [];
-        const collectBookmarks = (bookmarks: Bookmark[]) => {
-            allBookmarks.push(...bookmarks);
-        };
+      const htmlContent = fileService.readBookmarkFile(filePath);
+      const bookmarkTree = parser.parseHtmlFile(htmlContent);
 
-        const processFolder = (folder: any) => {
-            collectBookmarks(folder.bookmarks);
-            folder.subFolders.forEach(processFolder);
-        };
+      const allBookmarks: Bookmark[] = [];
+      const collectBookmarks = (bookmarks: Bookmark[]) => {
+        allBookmarks.push(...bookmarks);
+      };
 
-        processFolder(bookmarkTree.root);
+      const processFolder = (folder: any) => {
+        collectBookmarks(folder.bookmarks);
+        folder.subFolders.forEach(processFolder);
+      };
 
-        // Classify bookmarks
-        console.log(`Classifying ${allBookmarks.length} bookmarks...`);
-        const classifications = await ai.classifyBookmarks(allBookmarks);
+      processFolder(bookmarkTree.root);
 
-        // Create classification map
-        const classificationMap = new Map(
-            classifications.map(c => [
-                c.url,
-                { tags: c.suggestedTags, folder: c.suggestedFolder }
-            ])
-        );
+      console.log(`Classifying ${allBookmarks.length} bookmarks...`);
+      const classifications = await ai.classifyBookmarks(allBookmarks);
 
-        // Reorganize bookmarks
-        console.log('Reorganizing bookmarks...');
-        const reorganizedTree = generator.reorganizeBookmarks(bookmarkTree, classificationMap);
+      const classificationMap = new Map(
+        classifications.map((c) => [
+          c.url,
+          { tags: c.suggestedTags, folder: c.suggestedFolder },
+        ])
+      );
 
-        // Generate new HTML file
-        console.log('Generating new bookmark file...');
-        const newHtmlContent = generator.generateHtmlFile(reorganizedTree);
-        writeFileSync(defaultConfig.outputFile, newHtmlContent, 'utf-8');
+      console.log("Reorganizing bookmarks...");
+      const reorganizedTree = generator.reorganizeBookmarks(
+        bookmarkTree,
+        classificationMap
+      );
 
-        console.log(`Done! New bookmark file created at ${defaultConfig.outputFile}`);
-    } catch (error) {
-        console.error('Error:', error);
-        process.exit(1);
+      console.log("Generating new bookmark file...");
+      const newHtmlContent = generator.generateHtmlFile(reorganizedTree);
+      const outputPath = fileService.writeBookmarkFile(
+        newHtmlContent,
+        filePath
+      );
+
+      console.log(`Created organized bookmark file: ${outputPath}`);
     }
+
+    console.log("\nAll bookmark files have been processed successfully!");
+  } catch (error) {
+    console.error("Error:", error);
+    throw error;
+  }
 }
-
-main();

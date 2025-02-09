@@ -1,15 +1,51 @@
-# bookmarks-classification-ts
+# Bookmark Organizer
 
-To install dependencies:
+A TypeScript tool that uses AI to automatically organize and classify your browser bookmarks.
+
+## Features
+
+- Supports Chrome and Firefox bookmarks
+- Uses OpenAI's GPT to classify bookmarks
+- Automatically creates meaningful folder structures
+- Adds relevant tags to bookmarks
+- Preserves original bookmark metadata
+
+## Installation
 
 ```bash
+# Clone the repository
+git clone [your-repo-url]
+cd bookmarks-classification-ts
+
+# Install dependencies
 bun install
 ```
 
-To run:
+## Usage
+
+1. Export your bookmarks from Chrome or Firefox as HTML
+2. Place the exported HTML file(s) in the `data` folder
+3. Run the organizer using one of these methods:
 
 ```bash
-bun run index.ts
+# Using environment variable
+export OPENAI_API_KEY='your-api-key'
+bun run organize
+
+# Or directly with the command
+bun run organize --api-key 'your-api-key'
+
+# Specify browser (chrome is default)
+bun run organize --browser firefox
+
+# Use all options
+bun run organize --api-key 'your-api-key' --browser chrome
 ```
 
-This project was created using `bun init` in bun v1.2.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+The organized bookmarks will be saved in `data/output` with a timestamp in the filename.
+
+## Requirements
+
+- Bun runtime
+- OpenAI API key
+- Chrome or Firefox bookmarks exported as HTML
