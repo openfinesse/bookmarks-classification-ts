@@ -7,6 +7,7 @@ export interface Config {
   browserType: BrowserType;
   dataDir: string;
   outputDir: string;
+  maxFolders?: number;
 }
 
 export const defaultConfig: Config = {

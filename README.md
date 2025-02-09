@@ -9,6 +9,7 @@ Automatically organize and classify your browser bookmarks using AI.
 - Supports Chrome and Firefox bookmarks
 - Multiple AI models supported (OpenAI and DeepSeek)
 - Automatically creates meaningful folder structures
+- Optional folder grouping to limit the number of top-level folders
 - Adds relevant tags to bookmarks
 
 ## Installation
@@ -40,8 +41,11 @@ bun run organize --api-key 'your-api-key' --model openai
 # Specify browser (chrome is default)
 bun run organize --browser firefox --model deepseek
 
+# Limit the number of top-level folders (will group similar folders together)
+bun run organize --max-folders 10
+
 # Use all options
-bun run organize --api-key 'your-api-key' --model openai --browser chrome
+bun run organize --api-key 'your-api-key' --model openai --browser chrome --max-folders 15
 ```
 
 The organized bookmarks will be saved in `data/output` with a timestamp in the filename.

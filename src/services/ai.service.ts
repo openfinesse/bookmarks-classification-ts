@@ -3,6 +3,7 @@ import type {
   Bookmark,
   AIClassificationResponse,
   AIModelType,
+  AIConfig,
 } from "../types/bookmark.types";
 import { AIServiceError } from "../types/errors";
 import chalk from "chalk";
@@ -15,11 +16,12 @@ export class AIService {
   private retryDelay: number = 1000;
   private batchSize: number = 50;
 
-  constructor(apiKey: string, model: AIModelType) {
-    this.model = model;
+  constructor(private config: AIConfig) {
+    this.model = config.model;
     this.openai = new OpenAI({
-      apiKey,
-      baseURL: model === "deepseek" ? "https://api.deepseek.com" : undefined,
+      apiKey: config.apiKey,
+      baseURL:
+        config.model === "deepseek" ? "https://api.deepseek.com/v1" : undefined,
     });
   }
 
@@ -189,5 +191,39 @@ Consider the content, purpose, and context of each bookmark.`;
     }
 
     return results;
+  }
+
+  async groupFolders(
+    folders: string[],
+    targetCount: number
+  ): Promise<Map<string, string[]>> {
+    const prompt = `Given these ${
+      folders.length
+    } folder names, group them into ${targetCount} meaningful categories. Each category should have a clear, descriptive name. Return the result as a JSON object where keys are category names and values are arrays of folder names that belong to that category. Here are the folder names to categorize:\n\n${folders.join(
+      "\n"
+    )}`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: this.model === "deepseek" ? "deepseek-chat" : "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a helpful assistant that organizes folders into meaningful categories. Return only valid JSON.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+      });
+
+      const content = response.choices[0].message.content;
+      if (!content) throw new Error("No content in response");
+
+      const groupings = JSON.parse(content);
+      return new Map(Object.entries(groupings));
+    } catch (error: any) {
+      throw AIServiceError.fromOpenAIError(error, this.model);
+    }
   }
 }

@@ -4,6 +4,7 @@ export type AIModelType = "openai" | "deepseek";
 export interface AIConfig {
   apiKey: string;
   model: AIModelType;
+  maxFolders?: number;
 }
 
 export interface Bookmark {
