@@ -13,6 +13,7 @@ export class AIService {
   private retryCount: number = 0;
   private maxRetries: number = 3;
   private retryDelay: number = 1000;
+  private batchSize: number = 50;
 
   constructor(apiKey: string, model: AIModelType) {
     this.model = model;
@@ -50,18 +51,25 @@ export class AIService {
     }
   }
 
-  public async classifyBookmark(
-    bookmark: Bookmark
-  ): Promise<AIClassificationResponse> {
-    const prompt = `Analyze this bookmark and suggest appropriate tags and folder:
-Title: ${bookmark.title}
-URL: ${bookmark.url}
+  private async classifyBookmarkBatch(
+    bookmarks: Bookmark[]
+  ): Promise<AIClassificationResponse[]> {
+    const prompt = `Analyze these bookmarks and suggest appropriate tags and folders for each:
 
-Please classify this bookmark and suggest:
-1. A list of relevant tags
-2. The most appropriate folder name for this bookmark
+${bookmarks
+  .map(
+    (b, i) => `[${i + 1}]
+Title: ${b.title}
+URL: ${b.url}`
+  )
+  .join("\n\n")}
 
-Consider the content, purpose, and context of the bookmark.`;
+For each bookmark, provide the classification in this exact format:
+[Number]
+Tags: tag1, tag2, tag3
+Folder: folder_name
+
+Consider the content, purpose, and context of each bookmark.`;
 
     try {
       const response = await this.retryWithDelay(() =>
@@ -71,7 +79,7 @@ Consider the content, purpose, and context of the bookmark.`;
             {
               role: "system",
               content:
-                "You are a bookmark classification assistant. You analyze URLs and their titles to suggest appropriate tags and folders for organization.",
+                "You are a bookmark classification assistant. Analyze URLs and titles to suggest tags and folders for organization. Be concise and follow the exact format requested.",
             },
             {
               role: "user",
@@ -87,28 +95,37 @@ Consider the content, purpose, and context of the bookmark.`;
         throw new Error("No response from AI");
       }
 
-      const lines = content.split("\n");
-      const tags =
-        lines
-          .find((line) => line.toLowerCase().includes("tags:"))
-          ?.split(":")[1]
-          ?.split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0) || [];
+      const sections = content
+        .split(/\[\d+\]/)
+        .filter((section: string) => section.trim());
 
-      const folder =
-        lines
-          .find((line) => line.toLowerCase().includes("folder:"))
-          ?.split(":")[1]
-          ?.trim() || "Uncategorized";
+      return bookmarks.map((bookmark, index) => {
+        const section = sections[index] || "";
+        const lines = section.split("\n").map((line: string) => line.trim());
 
-      return {
-        url: bookmark.url,
-        suggestedTags: tags,
-        suggestedFolder: folder,
-      };
+        const tags =
+          lines
+            .find((line: string) => line.toLowerCase().startsWith("tags:"))
+            ?.substring(5)
+            .split(",")
+            .map((tag: string) => tag.trim())
+            .filter((tag: string) => tag.length > 0) || [];
+
+        const folder =
+          lines
+            .find((line: string) => line.toLowerCase().startsWith("folder:"))
+            ?.substring(7)
+            .trim() || "Uncategorized";
+
+        return {
+          url: bookmark.url,
+          suggestedTags: tags,
+          suggestedFolder: folder,
+        };
+      });
     } catch (error: any) {
       await this.handleAPIError(error);
+      return [];
     }
   }
 
@@ -118,11 +135,23 @@ Consider the content, purpose, and context of the bookmark.`;
     const results: AIClassificationResponse[] = [];
     let failedBookmarks: Bookmark[] = [];
 
-    for (const bookmark of bookmarks) {
+    for (let i = 0; i < bookmarks.length; i += this.batchSize) {
+      const batch = bookmarks.slice(i, i + this.batchSize);
       try {
-        const result = await this.classifyBookmark(bookmark);
-        results.push(result);
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        console.log(
+          chalk.blue(
+            `\n📦 Processing batch ${i / this.batchSize + 1}/${Math.ceil(
+              bookmarks.length / this.batchSize
+            )} (${batch.length} bookmarks)...`
+          )
+        );
+
+        const batchResults = await this.classifyBookmarkBatch(batch);
+        results.push(...batchResults);
+
+        if (i + this.batchSize < bookmarks.length) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       } catch (error) {
         if (error instanceof AIServiceError) {
           console.error(chalk.red(`\n❌ ${error.message}`));
@@ -135,9 +164,11 @@ Consider the content, purpose, and context of the bookmark.`;
             break;
           }
         }
-        failedBookmarks.push(bookmark);
+        failedBookmarks.push(...batch);
         console.error(
-          chalk.red(`\n❌ Failed to classify bookmark: ${bookmark.url}`)
+          chalk.red(
+            `\n❌ Failed to classify batch of ${batch.length} bookmarks`
+          )
         );
       }
     }
