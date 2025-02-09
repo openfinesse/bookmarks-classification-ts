@@ -197,11 +197,27 @@ Consider the content, purpose, and context of each bookmark.`;
     folders: string[],
     targetCount: number
   ): Promise<Map<string, string[]>> {
-    const prompt = `Given these ${
+    const prompt = `You are organizing browser bookmarks into a hierarchical structure. 
+Given these ${
       folders.length
-    } folder names, group them into ${targetCount} meaningful categories. Each category should have a clear, descriptive name. Return the result as a JSON object where keys are category names and values are arrays of folder names that belong to that category. Here are the folder names to categorize:\n\n${folders.join(
-      "\n"
-    )}`;
+    } folder names, create exactly ${targetCount} top-level categories.
+Each category should be broad and descriptive, and all existing folders should be assigned as sub-folders.
+
+Current folders to organize:
+${folders.join("\n")}
+
+Return the result as a JSON object where:
+- Keys are the new top-level category names (exactly ${targetCount})
+- Values are arrays of existing folder names that should go under each category
+- Every existing folder must be assigned to exactly one category
+- Category names should be clear and concise
+
+Example format:
+{
+  "Development": ["Programming", "GitHub", "Stack Overflow"],
+  "Entertainment": ["YouTube", "Netflix", "Gaming"],
+  "Work": ["Projects", "Meetings", "Resources"]
+}`;
 
     try {
       const response = await this.openai.chat.completions.create({
@@ -210,7 +226,7 @@ Consider the content, purpose, and context of each bookmark.`;
           {
             role: "system",
             content:
-              "You are a helpful assistant that organizes folders into meaningful categories. Return only valid JSON.",
+              "You are a bookmark organization assistant. Return only valid JSON that matches the requested format exactly.",
           },
           { role: "user", content: prompt },
         ],

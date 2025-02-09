@@ -58,20 +58,40 @@ export class BookmarkGenerator {
 
     const folderMap = new Map<string, BookmarkFolder>();
 
-    const getOrCreateFolder = (folderName: string): BookmarkFolder => {
-      if (!folderMap.has(folderName)) {
-        const newFolder: BookmarkFolder = {
-          title: folderName,
-          addDate: Date.now(),
-          lastModified: Date.now(),
-          bookmarks: [],
-          subFolders: [],
-          browserType: bookmarkTree.browserType,
-        };
-        folderMap.set(folderName, newFolder);
-        newRoot.subFolders.push(newFolder);
+    const getOrCreateFolder = (folderPath: string): BookmarkFolder => {
+      if (!folderMap.has(folderPath)) {
+        const parts = folderPath.split("/");
+        let currentPath = "";
+        let currentFolder = newRoot;
+
+        for (const part of parts) {
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+          if (!folderMap.has(currentPath)) {
+            const newFolder: BookmarkFolder = {
+              title: part,
+              addDate: Date.now(),
+              lastModified: Date.now(),
+              bookmarks: [],
+              subFolders: [],
+              browserType: bookmarkTree.browserType,
+            };
+            folderMap.set(currentPath, newFolder);
+
+            if (currentPath === part) {
+              newRoot.subFolders.push(newFolder);
+            } else {
+              const parentPath = currentPath.substring(
+                0,
+                currentPath.lastIndexOf("/")
+              );
+              const parentFolder = folderMap.get(parentPath)!;
+              parentFolder.subFolders.push(newFolder);
+            }
+          }
+          currentFolder = folderMap.get(currentPath)!;
+        }
       }
-      return folderMap.get(folderName)!;
+      return folderMap.get(folderPath)!;
     };
 
     const processFolder = (folder: BookmarkFolder) => {
@@ -93,11 +113,29 @@ export class BookmarkGenerator {
 
     processFolder(bookmarkTree.root);
 
-    newRoot.subFolders.sort((a, b) => a.title.localeCompare(b.title));
-    newRoot.subFolders.forEach((folder) => {
+    // Sort folders and bookmarks alphabetically
+    const sortFolderRecursively = (folder: BookmarkFolder) => {
+      folder.subFolders.sort((a, b) => a.title.localeCompare(b.title));
       folder.bookmarks.sort((a, b) => a.title.localeCompare(b.title));
-    });
+      folder.subFolders.forEach(sortFolderRecursively);
+    };
+
+    sortFolderRecursively(newRoot);
 
     return { root: newRoot, browserType: bookmarkTree.browserType };
+  }
+
+  public getAllFolderNames(bookmarkTree: BookmarkTree): string[] {
+    const folderNames: string[] = [];
+
+    const collectFolderNames = (folder: BookmarkFolder) => {
+      if (folder.title !== "Bookmarks") {
+        folderNames.push(folder.title);
+      }
+      folder.subFolders.forEach(collectFolderNames);
+    };
+
+    collectFolderNames(bookmarkTree.root);
+    return folderNames;
   }
 }

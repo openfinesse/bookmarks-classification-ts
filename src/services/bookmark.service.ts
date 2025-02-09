@@ -77,13 +77,59 @@ export class BookmarkService {
     );
 
     console.log(chalk.blue("\n🔄 Reorganizing bookmarks..."));
-    const reorganizedTree = this.generator.reorganizeBookmarks(
+    let reorganizedTree = this.generator.reorganizeBookmarks(
       bookmarkTree,
       classificationMap
     );
 
     if (this.config.maxFolders && this.config.maxFolders > 0) {
-      await this.regroupFolders(classifications);
+      console.log(
+        chalk.blue(
+          `\n🔄 Creating ${this.config.maxFolders} top-level categories...`
+        )
+      );
+
+      const allFolders = this.generator.getAllFolderNames(reorganizedTree);
+      console.log(
+        chalk.yellow(
+          `\nℹ️ Found ${allFolders.length} folders to organize into ${this.config.maxFolders} categories`
+        )
+      );
+
+      const groupings = await this.ai.groupFolders(
+        allFolders,
+        this.config.maxFolders
+      );
+
+      console.log(
+        chalk.green(`\n✅ Created ${groupings.size} top-level categories:`)
+      );
+      for (const [category, folders] of groupings) {
+        console.log(chalk.blue(`\n📁 ${category}:`));
+        folders.forEach((folder) => console.log(chalk.gray(`  - ${folder}`)));
+      }
+
+      // Update folder paths in classifications
+      for (const [category, folders] of groupings) {
+        for (const classification of classifications) {
+          if (folders.includes(classification.suggestedFolder)) {
+            classification.suggestedFolder = `${category}/${classification.suggestedFolder}`;
+          }
+        }
+      }
+
+      // Regenerate tree with updated classifications
+      const updatedClassificationMap = new Map(
+        classifications.map((c) => [
+          c.url,
+          { tags: c.suggestedTags, folder: c.suggestedFolder },
+        ])
+      );
+
+      reorganizedTree = this.generator.reorganizeBookmarks(
+        bookmarkTree,
+        updatedClassificationMap
+      );
     }
 
     const finalStats = countBookmarksAndFolders(reorganizedTree);
@@ -99,32 +145,6 @@ export class BookmarkService {
     console.log(
       chalk.green(`\n✅ Created organized bookmark file: ${outputPath}`)
     );
-  }
-
-  private async regroupFolders(classifications: any[]): Promise<void> {
-    console.log(
-      chalk.blue(
-        `\nRegrouping folders into ${this.config.maxFolders} categories...`
-      )
-    );
-
-    const folderNames = Array.from(
-      new Set(classifications.map((c) => c.suggestedFolder))
-    );
-    const groupings = await this.ai.groupFolders(
-      folderNames,
-      this.config.maxFolders!
-    );
-
-    console.log(chalk.green(`Created ${groupings.size} top-level categories`));
-
-    for (const [category, subfolders] of groupings) {
-      for (const classification of classifications) {
-        if (subfolders.includes(classification.suggestedFolder)) {
-          classification.suggestedFolder = `${category}/${classification.suggestedFolder}`;
-        }
-      }
-    }
   }
 
   private logFinalStats(initialStats: any, finalStats: any): void {
