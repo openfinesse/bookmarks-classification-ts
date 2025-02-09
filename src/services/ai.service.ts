@@ -32,22 +32,29 @@ export class AIService {
     try {
       return await fn();
     } catch (error: any) {
-      if (error.status === 402) {
-        throw AIServiceError.fromOpenAIError(error, this.model.toUpperCase());
+      const aiError = AIServiceError.fromOpenAIError(
+        error,
+        this.model.toUpperCase()
+      );
+
+      if (aiError.isQuotaError) {
+        throw aiError;
       }
 
-      if (this.retryCount < this.maxRetries) {
+      if (this.retryCount < this.maxRetries && aiError.shouldRetry) {
         this.retryCount++;
         console.log(
           chalk.yellow(
             `\n⚠️ API call failed, retrying (${this.retryCount}/${this.maxRetries})...`
           )
         );
-        await new Promise((resolve) => setTimeout(resolve, this.retryDelay));
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.retryDelay * this.retryCount)
+        );
         return this.retryWithDelay(fn);
       }
 
-      throw error;
+      throw aiError;
     }
   }
 

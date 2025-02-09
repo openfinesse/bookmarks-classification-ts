@@ -2,13 +2,14 @@
 
 A TypeScript tool that uses AI to automatically organize and classify your browser bookmarks.
 
+![image](assets/image.png)
+
 ## Features
 
 - Supports Chrome and Firefox bookmarks
 - Multiple AI models supported (OpenAI and DeepSeek)
 - Automatically creates meaningful folder structures
 - Adds relevant tags to bookmarks
-- Preserves original bookmark metadata
 
 ## Installation
 
