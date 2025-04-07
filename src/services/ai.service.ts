@@ -87,7 +87,7 @@ Consider the content, purpose, and context of each bookmark.${
     try {
       const response = await this.retryWithDelay(() =>
         this.openai.chat.completions.create({
-          model: this.model === "openai" ? "gpt-3.5-turbo" : "deepseek-chat",
+          model: this.model === "openai" ? "gpt-4o-mini" : "deepseek-chat",
           messages: [
             {
               role: "system",
@@ -237,7 +237,7 @@ Example format:
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: this.model === "deepseek" ? "deepseek-chat" : "gpt-3.5-turbo",
+        model: this.model === "deepseek" ? "deepseek-chat" : "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -249,11 +249,36 @@ Example format:
         temperature: 0.3,
       });
 
-      const content = response.choices[0].message.content;
+      let content = response.choices[0].message.content;
       if (!content) throw new Error("No content in response");
 
-      const groupings = JSON.parse(content);
-      return new Map(Object.entries(groupings));
+      // Sanitize the content to handle potential JSON parsing issues
+      // 1. Remove backticks around JSON if present (e.g., ```json {...} ```)
+      content = content.replace(/```(?:json)?\s*|\s*```/g, '');
+      
+      // 2. Make sure content is valid JSON
+      content = content.trim();
+      
+      // Check if content starts with { and ends with }
+      if (!content.startsWith('{') || !content.endsWith('}')) {
+        console.log(chalk.yellow("\n⚠️ API response doesn't appear to be valid JSON. Attempting to extract JSON content..."));
+        
+        // Try to find JSON-like content between curly braces
+        const jsonMatch = content.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          content = jsonMatch[0];
+        } else {
+          throw new Error("Unable to extract valid JSON from API response");
+        }
+      }
+
+      try {
+        const groupings = JSON.parse(content);
+        return new Map(Object.entries(groupings));
+      } catch (parseError: any) {
+        console.error(chalk.red("\n❌ Failed to parse JSON response:"), content);
+        throw new Error(`JSON Parse error: ${parseError.message}`);
+      }
     } catch (error: any) {
       throw AIServiceError.fromOpenAIError(error, this.model);
     }

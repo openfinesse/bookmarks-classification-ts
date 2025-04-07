@@ -97,96 +97,102 @@ export class BookmarkService {
         )
       );
 
-      const groupings = await this.ai.groupFolders(
-        uniqueFolders,
-        this.config.maxFolders
-      );
+      try {
+        const groupings = await this.ai.groupFolders(
+          uniqueFolders,
+          this.config.maxFolders
+        );
 
-      console.log(
-        chalk.green(`\n✅ Created ${groupings.size} top-level categories:`)
-      );
+        console.log(
+          chalk.green(`\n✅ Created ${groupings.size} top-level categories:`)
+        );
 
-      const folderToCategory = new Map<string, string>();
-      for (const [category, folders] of groupings) {
-        console.log(chalk.blue(`\n📁 ${category}:`));
-        folders.forEach((folder) => {
-          console.log(chalk.gray(`  - ${folder}`));
-          folderToCategory.set(folder, category);
-        });
-      }
-
-      const updatedClassifications = classifications.map((classification) => {
-        const suggestedFolder = classification.suggestedFolder.trim();
-        if (!suggestedFolder) {
-          return {
-            ...classification,
-            suggestedFolder: "Digital Resources/Uncategorized",
-          };
+        const folderToCategory = new Map<string, string>();
+        for (const [category, folders] of groupings) {
+          console.log(chalk.blue(`\n📁 ${category}:`));
+          folders.forEach((folder) => {
+            console.log(chalk.gray(`  - ${folder}`));
+            folderToCategory.set(folder, category);
+          });
         }
 
-        let category = folderToCategory.get(suggestedFolder);
+        const updatedClassifications = classifications.map((classification) => {
+          const suggestedFolder = classification.suggestedFolder.trim();
+          if (!suggestedFolder) {
+            return {
+              ...classification,
+              suggestedFolder: "Digital Resources/Uncategorized",
+            };
+          }
 
-        if (!category) {
-          for (const [
-            existingFolder,
-            mappedCategory,
-          ] of folderToCategory.entries()) {
+          let category = folderToCategory.get(suggestedFolder);
+
+          if (!category) {
+            for (const [
+              existingFolder,
+              mappedCategory,
+            ] of folderToCategory.entries()) {
+              if (
+                suggestedFolder
+                  .toLowerCase()
+                  .includes(existingFolder.toLowerCase()) ||
+                existingFolder
+                  .toLowerCase()
+                  .includes(suggestedFolder.toLowerCase())
+              ) {
+                category = mappedCategory;
+                break;
+              }
+            }
+          }
+
+          if (category) {
+            return {
+              ...classification,
+              suggestedFolder: `${category}/${suggestedFolder}`,
+            };
+          }
+
+          for (const [mainCategory] of groupings) {
             if (
               suggestedFolder
                 .toLowerCase()
-                .includes(existingFolder.toLowerCase()) ||
-              existingFolder
-                .toLowerCase()
-                .includes(suggestedFolder.toLowerCase())
+                .includes(mainCategory.toLowerCase()) ||
+              mainCategory.toLowerCase().includes(suggestedFolder.toLowerCase())
             ) {
-              category = mappedCategory;
-              break;
+              return {
+                ...classification,
+                suggestedFolder: `${mainCategory}/${suggestedFolder}`,
+              };
             }
           }
-        }
 
-        if (category) {
+          const generalCategory = this.findBestCategory(
+            suggestedFolder,
+            Array.from(groupings.keys())
+          );
+          console.log(
+            chalk.yellow(
+              `ℹ️ Assigning folder "${suggestedFolder}" to general category "${generalCategory}"`
+            )
+          );
           return {
             ...classification,
-            suggestedFolder: `${category}/${suggestedFolder}`,
+            suggestedFolder: `${generalCategory}/${suggestedFolder}`,
           };
-        }
+        });
 
-        for (const [mainCategory] of groupings) {
-          if (
-            suggestedFolder
-              .toLowerCase()
-              .includes(mainCategory.toLowerCase()) ||
-            mainCategory.toLowerCase().includes(suggestedFolder.toLowerCase())
-          ) {
-            return {
-              ...classification,
-              suggestedFolder: `${mainCategory}/${suggestedFolder}`,
-            };
-          }
-        }
-
-        const generalCategory = this.findBestCategory(
-          suggestedFolder,
-          Array.from(groupings.keys())
+        classificationMap = new Map(
+          updatedClassifications.map((c) => [
+            c.url,
+            { tags: c.suggestedTags, folder: c.suggestedFolder },
+          ])
         );
-        console.log(
-          chalk.yellow(
-            `ℹ️ Assigning folder "${suggestedFolder}" to general category "${generalCategory}"`
-          )
-        );
-        return {
-          ...classification,
-          suggestedFolder: `${generalCategory}/${suggestedFolder}`,
-        };
-      });
-
-      classificationMap = new Map(
-        updatedClassifications.map((c) => [
-          c.url,
-          { tags: c.suggestedTags, folder: c.suggestedFolder },
-        ])
-      );
+      } catch (error) {
+        console.error(chalk.red(`\n❌ Error creating folder categories:`), error instanceof Error ? error.message : error);
+        // If grouping fails, proceed with the original classifications but make it clear in the logs
+        console.log(chalk.yellow(`\n⚠️ Proceeding with original folder structure without categorization.`));
+      }
     }
 
     console.log(chalk.blue("\n🔄 Reorganizing bookmarks..."));
@@ -396,9 +402,11 @@ export class BookmarkService {
         )
       );
 
+      let successfulProcesses = 0;
       for (const filePath of bookmarkFiles) {
         try {
           await this.processBookmarkFile(filePath);
+          successfulProcesses++;
         } catch (error) {
           if (error instanceof AIServiceError) {
             console.error(chalk.red(`\n❌ ${error.message}`));
@@ -416,9 +424,21 @@ export class BookmarkService {
         }
       }
 
-      console.log(
-        chalk.green("\n🎉 All bookmark files have been processed successfully!")
-      );
+      if (successfulProcesses === 0) {
+        console.log(
+          chalk.yellow("\n⚠️ Process completed but no output files were generated.")
+        );
+      } else if (successfulProcesses < bookmarkFiles.length) {
+        console.log(
+          chalk.yellow(
+            `\n⚠️ Process completed with ${successfulProcesses} out of ${bookmarkFiles.length} files processed successfully.`
+          )
+        );
+      } else {
+        console.log(
+          chalk.green("\n🎉 All bookmark files have been processed successfully!")
+        );
+      }
       printFinalStats(this.config);
     } catch (error: any) {
       console.error(chalk.red("\n❌ Fatal error:"), error);
